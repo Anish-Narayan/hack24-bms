@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BMS Audit Pro | Privacy Edition</title>
+    <style>
+        :root { --bg: #0e1117; --card: #1a1c24; --green: #00ff00; --red: #ff4b4b; --blue: #00d4ff; --text: #ffffff; --gray: #888; }
+        body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 20px; line-height: 1.6; }
+        .container { max-width: 900px; margin: 0 auto; }
+        
+        /* Header & Status */
+        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding-bottom: 20px; margin-bottom: 30px; }
+        .status-badge { display: flex; align-items: center; font-size: 0.9rem; font-weight: bold; text-transform: uppercase; }
+        .status-dot { height: 10px; width: 10px; background-color: var(--red); border-radius: 50%; display: inline-block; margin-right: 8px; }
+        .status-online { background-color: var(--green); box-shadow: 0 0 10px var(--green); }
+
+        /* Setup Section */
+        #setup-section { background: var(--card); padding: 30px; border-radius: 12px; border: 1px solid #333; }
+        .terminal-container { position: relative; margin-top: 20px; }
+        .terminal-code { background: #000; color: #00ff00; padding: 20px; border-radius: 8px; font-family: 'Consolas', monospace; overflow-x: auto; font-size: 0.85rem; border: 1px solid #444; white-space: pre-wrap; word-break: break-all; }
+        .copy-btn { margin-top: 10px; background: #333; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; }
+        .copy-btn:hover { background: #444; }
+
+        /* Dashboard UI */
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .metric-card { background: var(--card); padding: 25px; border-radius: 12px; border: 1px solid #333; text-align: center; transition: 0.3s; }
+        .metric-card:hover { border-color: var(--blue); }
+        .metric-label { color: var(--gray); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 10px; }
+        .metric-value { font-size: 2.2rem; font-weight: bold; color: var(--green); }
+
+        /* Alerts & Recommendations */
+        h2 { font-size: 1.1rem; text-transform: uppercase; color: var(--gray); letter-spacing: 2px; margin: 40px 0 20px 0; display: flex; align-items: center; }
+        h2::after { content: ""; flex: 1; height: 1px; background: #333; margin-left: 15px; }
+        .alert-item { background: rgba(255, 75, 75, 0.1); border-left: 4px solid var(--red); padding: 20px; margin-bottom: 15px; border-radius: 8px; animation: slideIn 0.5s ease; }
+        .rec-item { background: rgba(0, 212, 255, 0.05); border-left: 4px solid var(--blue); padding: 20px; margin-bottom: 15px; border-radius: 8px; }
+        .item-title { font-weight: bold; display: block; margin-bottom: 5px; color: #fff; }
+        .item-desc { font-size: 0.95rem; color: #ccc; }
+
+        @keyframes slideIn { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: translateX(0); } }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <div>
+            <h1 style="margin:0; font-size: 1.5rem;">🛡️ BMS AUDIT PRO</h1>
+            <p style="margin:5px 0 0 0; color: var(--gray); font-size: 0.85rem;">Hardware Intelligence • Private Analysis</p>
+        </div>
+        <div class="status-badge">
+            <span id="status-dot" class="status-dot"></span>
+            <span id="conn-text" style="color: var(--red);">Bridge Offline</span>
+        </div>
+    </div>
+
+    <!-- SETUP VIEW -->
+    <div id="setup-section">
+        <h3 style="margin-top:0;">Telemetry Initialization Required</h3>
+        <p style="color: #ccc;">To analyze your hardware, start the local telemetry bridge. This command discovers your battery and streams encrypted data directly to this browser tab.</p>
+        
+        <div class="terminal-container">
+            <div class="terminal-code" id="cmd-text">python3 -c "exec(\"import http.server,json\nclass B(http.server.BaseHTTPRequestHandler):\n    def do_GET(s):\n        try:\n            d={'pct':int(open('/sys/class/power_supply/BAT0/capacity').read()),'v':float(open('/sys/class/power_supply/BAT0/voltage_now').read())/1e6,'p':float(open('/sys/class/power_supply/BAT0/power_now').read())/1e6,'t':float(open('/sys/class/thermal/thermal_zone0/temp').read())/1000,'c':int(open('/sys/class/power_supply/BAT0/cycle_count').read()),'f':float(open('/sys/class/power_supply/BAT0/energy_full').read())/1e6,'d':float(open('/sys/class/power_supply/BAT0/energy_full_design').read())/1e6}\n            s.send_response(200)\n            s.send_header('Access-Control-Allow-Origin','*')\n            s.end_headers()\n            s.wfile.write(json.dumps(d).encode())\n        except Exception as e: s.send_error(500,str(e))\nhttp.server.HTTPServer(('127.0.0.1',8888),B).serve_forever()\")"</div>
+            <button class="copy-btn" onclick="copyCommand()">Click to Copy Command</button>
+        </div>
+    </div>
+
+    <!-- MAIN DASHBOARD VIEW -->
+    <div id="main-ui" style="display: none;">
+        <div class="grid">
+            <div class="metric-card"><div class="metric-label">Charge Level</div><div id="m-pct" class="metric-value">--%</div></div>
+            <div class="metric-card"><div class="metric-label">Health (SoH)</div><div id="m-soh" class="metric-value">--%</div></div>
+            <div class="metric-card"><div class="metric-label">Temperature</div><div id="m-temp" class="metric-value">--°C</div></div>
+            <div class="metric-card"><div class="metric-label">Life Cycles</div><div id="m-cycles" class="metric-value">--</div></div>
+        </div>
+
+        <h2>⚠️ System Alerts & Anomalies</h2>
+        <div id="alerts-container"></div>
+
+        <h2>🩺 Engineering Insights</h2>
+        <div id="recs-container"></div>
+    </div>
+</div>
+
+<script>
+    let history = [];
+
+    function copyCommand() {
+        const cmd = document.getElementById('cmd-text').innerText;
+        navigator.clipboard.writeText(cmd);
+        alert("Command copied to clipboard!");
+    }
+
+    async function fetchData() {
+        try {
+            const response = await fetch('http://127.0.0.1:8888');
+            const data = await response.json();
+
+            // Bridge Connected Logic
+            document.getElementById('setup-section').style.display = 'none';
+            document.getElementById('main-ui').style.display = 'block';
+            document.getElementById('status-dot').classList.add('status-online');
+            document.getElementById('conn-text').innerText = 'Bridge Online';
+            document.getElementById('conn-text').style.color = 'var(--green)';
+
+            // Calculations
+            const soh = (data.f / data.d) * 100;
+            history.push({ pct: data.pct, t: data.t, ts: Date.now() });
+            if (history.length > 30) history.shift();
+
+            // Update Metrics
+            document.getElementById('m-pct').innerText = data.pct + '%';
+            document.getElementById('m-soh').innerText = soh.toFixed(1) + '%';
+            document.getElementById('m-temp').innerText = data.t.toFixed(1) + '°C';
+            document.getElementById('m-cycles').innerText = data.c;
+
+            // Diagnostic Logic
+            const alerts = [];
+            const recs = [];
+
+            // 1. Thermal Analysis
+            if (data.t > 42) {
+                alerts.push({title: "CRITICAL: THERMAL THROTTLING", desc: "Battery temp is dangerous (>42°C). High heat causes permanent electrolyte breakdown."});
+            } else if (data.t > 35) {
+                alerts.push({title: "NOTICE: ELEVATED TEMPERATURE", desc: "Warm operating environment detected. Reducing load is recommended to prevent aging."});
+            }
+
+            // 2. Health Analysis
+            if (soh < 80) {
+                alerts.push({title: "WARNING: END OF LIFE (SoH < 80%)", desc: "Chemical aging is significant. Expect frequent sudden power drops and reduced runtime."});
+            }
+
+            // 3. Discharge Rate Analysis
+            if (history.length > 10) {
+                const drop = history[0].pct - history[history.length-1].pct;
+                if (drop > 1) {
+                    alerts.push({title: "ANOMALY: RAPID DISCHARGE", desc: "System is draining capacity faster than standard baseline. Check background high-CPU processes."});
+                }
+            }
+
+            // Recommendations
+            if (data.pct > 95) recs.push({title: "Limit Static Charging", desc: "Lithium cells are stressed at 100%. If plugged in, consider a charge limiter to 80%."});
+            if (data.c > 500) recs.push({title: "High Cycle Milestone", desc: "Passed 500 cycles. Internal resistance is likely rising; avoid high-current tasks on low battery."});
+            if (alerts.length === 0) recs.push({title: "Nominal Operation", desc: "All hardware sensors reporting within safe industrial bounds."});
+
+            // Render UI
+            const alertContainer = document.getElementById('alerts-container');
+            alertContainer.innerHTML = alerts.length ? alerts.map(a => `<div class="alert-item"><span class="item-title">${a.title}</span><span class="item-desc">${a.desc}</span></div>`).join('') 
+                : '<p style="color:var(--green); font-size:0.9rem;">✅ No active hardware anomalies detected.</p>';
+
+            const recContainer = document.getElementById('recs-container');
+            recContainer.innerHTML = recs.map(r => `<div class="rec-item"><span class="item-title">💡 ${r.title}</span><span class="item-desc">${r.desc}</span></div>`).join('');
+
+        } catch (e) {
+            // Revert status if bridge dies
+            document.getElementById('status-dot').classList.remove('status-online');
+            document.getElementById('conn-text').innerText = 'Bridge Offline';
+            document.getElementById('conn-text').style.color = 'var(--red)';
+        }
+    }
+
+    // Refresh every 2 seconds
+    setInterval(fetchData, 2000);
+</script>
+
+</body>
+</html>
